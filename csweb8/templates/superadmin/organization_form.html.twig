@@ -1,0 +1,156 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ organization ? 'Modifier' : 'Créer' }} une Organisation{% endblock %}
+
+{% block body %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h3>
+                        <i class="fas fa-building"></i>
+                        {{ organization ? 'Modifier l\'organisation' : 'Nouvelle organisation' }}
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="form-group">
+                            <label for="code">Code Organisation *</label>
+                            <input type="text"
+                                   class="form-control"
+                                   id="code"
+                                   name="code"
+                                   value="{{ organization ? organization.organizationCode : '' }}"
+                                   {{ organization ? 'readonly' : 'required' }}
+                                   pattern="[A-Z0-9_]+"
+                                   placeholder="Ex: ANSD, INS_BENIN">
+                            <small class="form-text text-muted">
+                                Code unique en majuscules (lettres, chiffres, underscores). Ne peut pas être modifié après création.
+                            </small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="name">Nom Complet *</label>
+                            <input type="text"
+                                   class="form-control"
+                                   id="name"
+                                   name="name"
+                                   value="{{ organization ? organization.organizationName : '' }}"
+                                   required
+                                   placeholder="Ex: Agence Nationale de la Statistique">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="type">Type d'Organisation</label>
+                            <select class="form-control" id="type" name="type">
+                                <option value="statistics_office" {{ organization and organization.organizationType == 'statistics_office' ? 'selected' : '' }}>
+                                    Institut National de Statistique
+                                </option>
+                                <option value="research" {{ organization and organization.organizationType == 'research' ? 'selected' : '' }}>
+                                    Recherche / Université
+                                </option>
+                                <option value="survey_firm" {{ organization and organization.organizationType == 'survey_firm' ? 'selected' : '' }}>
+                                    Cabinet de Collecte
+                                </option>
+                                <option value="ngo" {{ organization and organization.organizationType == 'ngo' ? 'selected' : '' }}>
+                                    ONG
+                                </option>
+                                <option value="government" {{ organization and organization.organizationType == 'government' ? 'selected' : '' }}>
+                                    Agence Gouvernementale
+                                </option>
+                                <option value="other" {{ organization and organization.organizationType == 'other' ? 'selected' : '' }}>
+                                    Autre
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="country">Code Pays (ISO 3166-1)</label>
+                            <input type="text"
+                                   class="form-control"
+                                   id="country"
+                                   name="country"
+                                   value="{{ organization ? organization.countryCode : '' }}"
+                                   maxlength="2"
+                                   pattern="[A-Z]{2}"
+                                   placeholder="Ex: SN, BJ, CI">
+                            <small class="form-text text-muted">
+                                Code à 2 lettres en majuscules (Ex: SN pour Sénégal, BJ pour Bénin)
+                            </small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="email">Email de Contact</label>
+                            <input type="email"
+                                   class="form-control"
+                                   id="email"
+                                   name="email"
+                                   value="{{ organization ? organization.contactEmail : '' }}"
+                                   placeholder="contact@organisation.sn">
+                        </div>
+
+                        {% if organization %}
+                        <div class="form-group">
+                            <div class="custom-control custom-switch">
+                                <input type="checkbox"
+                                       class="custom-control-input"
+                                       id="is_active"
+                                       name="is_active"
+                                       value="1"
+                                       {{ organization.isActive ? 'checked' : '' }}>
+                                <label class="custom-control-label" for="is_active">
+                                    Organisation Active
+                                </label>
+                            </div>
+                            <small class="form-text text-muted">
+                                Désactiver empêche l'accès pour tous les utilisateurs de cette organisation
+                            </small>
+                        </div>
+                        {% endif %}
+
+                        <hr>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ path('superadmin_organizations_list') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Annuler
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i>
+                                {{ organization ? 'Mettre à Jour' : 'Créer l\'Organisation' }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {% if organization %}
+            <div class="card mt-3">
+                <div class="card-header">
+                    <i class="fas fa-info-circle"></i> Informations Système
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-4">ID:</dt>
+                        <dd class="col-sm-8">{{ organization.id }}</dd>
+
+                        <dt class="col-sm-4">Créée le:</dt>
+                        <dd class="col-sm-8">{{ organization.createdTime|date('d/m/Y H:i') }}</dd>
+
+                        <dt class="col-sm-4">Modifiée le:</dt>
+                        <dd class="col-sm-8">{{ organization.modifiedTime|date('d/m/Y H:i') }}</dd>
+
+                        <dt class="col-sm-4">Connexions:</dt>
+                        <dd class="col-sm-8">
+                            <a href="{{ path('superadmin_organization_connections', {id: organization.id}) }}">
+                                {{ organization.databaseConnections|length }} connexion(s)
+                            </a>
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

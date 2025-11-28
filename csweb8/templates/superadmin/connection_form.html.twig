@@ -1,0 +1,261 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouvelle Connexion BD - {{ organization.organizationName }}{% endblock %}
+
+{% block body %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-10 offset-md-1">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ path('superadmin_dashboard') }}">Administration</a></li>
+                    <li class="breadcrumb-item"><a href="{{ path('superadmin_organizations_list') }}">Organisations</a></li>
+                    <li class="breadcrumb-item"><a href="{{ path('superadmin_organization_connections', {id: organization.id}) }}">{{ organization.organizationCode }}</a></li>
+                    <li class="breadcrumb-item active">Nouvelle Connexion</li>
+                </ol>
+            </nav>
+
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3>
+                        <i class="fas fa-database"></i>
+                        Nouvelle Connexion de Base de Données
+                    </h3>
+                    <p class="mb-0"><strong>Organisation:</strong> {{ organization.organizationName }} ({{ organization.organizationCode }})</p>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="connectionForm">
+                        <div class="form-row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="name">Nom de la Connexion *</label>
+                                    <input type="text"
+                                           class="form-control"
+                                           id="name"
+                                           name="name"
+                                           required
+                                           placeholder="Ex: POSTGRES_PROD, MYSQL_DEV">
+                                    <small class="form-text text-muted">
+                                        Nom unique pour identifier cette connexion
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="driver">Type de SGBD *</label>
+                                    <select class="form-control" id="driver" name="driver" required onchange="updatePortDefault()">
+                                        <option value="">-- Sélectionner --</option>
+                                        <option value="pdo_mysql">MySQL / MariaDB</option>
+                                        <option value="pdo_pgsql" selected>PostgreSQL</option>
+                                        <option value="sqlsrv">Microsoft SQL Server</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="col-md-8">
+                                <div class="form-group">
+                                    <label for="host">Hôte *</label>
+                                    <input type="text"
+                                           class="form-control"
+                                           id="host"
+                                           name="host"
+                                           value="postgres"
+                                           required
+                                           placeholder="postgres, mysql, sqlserver">
+                                    <small class="form-text text-muted">
+                                        Nom du serveur de base de données (utiliser le nom du service Docker)
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="port">Port</label>
+                                    <input type="number"
+                                           class="form-control"
+                                           id="port"
+                                           name="port"
+                                           value="5432"
+                                           placeholder="3306, 5432, 1433">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="database">Nom de la Base de Données *</label>
+                                    <input type="text"
+                                           class="form-control"
+                                           id="database"
+                                           name="database"
+                                           required
+                                           placeholder="Ex: {{ organization.organizationCode|lower }}_data">
+                                    <small class="form-text text-muted">
+                                        La base doit exister sur le serveur
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="charset">Charset</label>
+                                    <select class="form-control" id="charset" name="charset">
+                                        <option value="utf8mb4" selected>utf8mb4 (recommandé)</option>
+                                        <option value="utf8">utf8</option>
+                                        <option value="latin1">latin1</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="user">Nom d'Utilisateur *</label>
+                                    <input type="text"
+                                           class="form-control"
+                                           id="user"
+                                           name="user"
+                                           required
+                                           placeholder="cspro">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="password">Mot de Passe *</label>
+                                    <div class="input-group">
+                                        <input type="password"
+                                               class="form-control"
+                                               id="password"
+                                               name="password"
+                                               required
+                                               placeholder="••••••••">
+                                        <div class="input-group-append">
+                                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword()">
+                                                <i class="fas fa-eye" id="toggleIcon"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        Le mot de passe sera chiffré avant stockage
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="custom-control custom-switch">
+                                <input type="checkbox"
+                                       class="custom-control-input"
+                                       id="is_default"
+                                       name="is_default"
+                                       value="1">
+                                <label class="custom-control-label" for="is_default">
+                                    <strong>Définir comme connexion par défaut</strong>
+                                </label>
+                            </div>
+                            <small class="form-text text-muted">
+                                La connexion par défaut sera utilisée pour tous les nouveaux dictionnaires
+                            </small>
+                        </div>
+
+                        <hr>
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Test automatique:</strong> La connexion sera automatiquement testée avant d'être enregistrée.
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ path('superadmin_organization_connections', {id: organization.id}) }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Annuler
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-check-circle"></i> Créer et Tester la Connexion
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Aide rapide -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <i class="fas fa-question-circle"></i> Aide Rapide
+                </div>
+                <div class="card-body">
+                    <h5>Exemples de Configuration</h5>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h6><i class="fas fa-server text-primary"></i> PostgreSQL (Recommandé)</h6>
+                            <ul class="small">
+                                <li>Hôte: <code>postgres</code></li>
+                                <li>Port: <code>5432</code></li>
+                                <li>User: <code>cspro</code></li>
+                                <li>Charset: <code>utf8</code></li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="fas fa-database text-success"></i> MySQL</h6>
+                            <ul class="small">
+                                <li>Hôte: <code>mysql</code></li>
+                                <li>Port: <code>3306</code></li>
+                                <li>User: <code>cspro</code></li>
+                                <li>Charset: <code>utf8mb4</code></li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="fas fa-database text-warning"></i> SQL Server</h6>
+                            <ul class="small">
+                                <li>Hôte: <code>sqlserver</code></li>
+                                <li>Port: <code>1433</code></li>
+                                <li>User: <code>sa</code></li>
+                                <li>Password: Voir .env</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function togglePassword() {
+    const passwordInput = document.getElementById('password');
+    const icon = document.getElementById('toggleIcon');
+
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        passwordInput.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
+
+function updatePortDefault() {
+    const driver = document.getElementById('driver').value;
+    const portInput = document.getElementById('port');
+    const hostInput = document.getElementById('host');
+
+    switch(driver) {
+        case 'pdo_mysql':
+            portInput.value = '3306';
+            hostInput.value = 'mysql';
+            break;
+        case 'pdo_pgsql':
+            portInput.value = '5432';
+            hostInput.value = 'postgres';
+            break;
+        case 'sqlsrv':
+            portInput.value = '1433';
+            hostInput.value = 'sqlserver';
+            break;
+    }
+}
+</script>
+{% endblock %}

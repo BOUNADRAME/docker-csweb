@@ -1,0 +1,13 @@
+# This file is auto-generated during the composer install
+parameters:
+    mailer_transport: smtp
+    mailer_host: 127.0.0.1
+    mailer_user: null
+    mailer_password: null
+    secret: ThisTokenIsNotSoSecretChangeIt
+    database_host: mysql
+    database_port: 3306
+    database_name: cspro
+    database_user: root
+    database_password: rootpassword
+    database_encryption_key: 'bd2f98020a1589955b60b44431d9018c1d325239a74a1c9234b92e45bdd079b5'

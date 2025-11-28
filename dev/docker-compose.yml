@@ -1,18 +1,17 @@
-version: "3.7"
 services:
   php:
-    build: 
-      context: './php/'
+    build:
+      context: "./php/"
       args:
-       PHP_VERSION: ${PHP_VERSION}
+        PHP_VERSION: ${PHP_VERSION}
     networks:
       - frontend
       - backend
     volumes:
       - ${CSWEB_ROOT}/:/var/www/html/
-    ports: 
+    ports:
       - "80:80"
-    depends_on: 
+    depends_on:
       - mysql
     container_name: php
   mysql:
@@ -21,7 +20,7 @@ services:
     ports:
       - "3306:3306"
     volumes:
-            - data:/var/lib/mysql
+      - csweb_mysql_data:/var/lib/mysql
     networks:
       - backend
     environment:
@@ -38,16 +37,18 @@ services:
       PMA_USER: root
       PMA_PASSWORD: "${DB_ROOT_PASSWORD}"
     ports:
-      - '8080:80'
+      - "8080:80"
     networks:
       - frontend
       - backend
-    container_name:
-      phpmyadmin
+    container_name: phpmyadmin
     depends_on:
       - mysql
 networks:
   frontend:
+    name: csweb_frontend
   backend:
+    name: csweb_backend
 volumes:
-    data:
+  csweb_mysql_data:
+    name: csweb_mysql_data

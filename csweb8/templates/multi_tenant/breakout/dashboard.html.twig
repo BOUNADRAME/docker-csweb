@@ -1,0 +1,127 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Breakout Multi-Tenant{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <h1 class="mb-4">
+                <i class="fas fa-database"></i> Breakout & Automatisation
+            </h1>
+            <p class="text-muted">
+                Configuration du breakout BLOB → Tables et gestion des cron jobs par organisation
+            </p>
+        </div>
+    </div>
+
+    {% if running_jobs|length > 0 %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="alert alert-info">
+                <i class="fas fa-spinner fa-spin"></i>
+                <strong>{{ running_jobs|length }} job(s) en cours d'exécution</strong>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-building"></i> Organisations - Configuration Breakout
+                </div>
+                <div class="card-body">
+                    {% if organizations|length > 0 %}
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Organisation</th>
+                                    <th>Connexions BD</th>
+                                    <th>Cron Jobs</th>
+                                    <th>Jobs Actifs</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for org in organizations %}
+                                <tr>
+                                    <td><strong>{{ org.organization_code }}</strong></td>
+                                    <td>{{ org.organization_name }}</td>
+                                    <td>
+                                        <span class="badge badge-info">
+                                            {{ org.total_connections }} connexion(s)
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-secondary">
+                                            {{ org.total_cron_jobs }} job(s)
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-success">
+                                            {{ org.active_jobs }} actif(s)
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="{{ path('mt_breakout_organization', {id: org.org_id}) }}"
+                                           class="btn btn-sm btn-primary">
+                                            <i class="fas fa-cog"></i> Configurer
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            Aucune organisation active.
+                            <a href="{{ path('superadmin_organizations_create') }}" class="alert-link">
+                                Créer une organisation
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if running_jobs|length > 0 %}
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <i class="fas fa-tasks"></i> Jobs en Cours d'Exécution
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Organisation</th>
+                                <th>Job</th>
+                                <th>Connexion</th>
+                                <th>Démarré</th>
+                                <th>Commande</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for job in running_jobs %}
+                            <tr>
+                                <td>{{ job.organization_name }}</td>
+                                <td>{{ job.job_name }}</td>
+                                <td>{{ job.connection_name|default('N/A') }}</td>
+                                <td>{{ job.last_run_at|date('Y-m-d H:i:s') }}</td>
+                                <td><code class="small">{{ job.command|slice(0, 60) }}...</code></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,226 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Créer Cron Job - {{ organization.organization_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1 class="mb-2">
+                <i class="fas fa-clock"></i> {% if cron_job %}Éditer{% else %}Nouveau{% endif %} Cron Job
+            </h1>
+            <p class="text-muted">
+                Organisation: <strong>{{ organization.organization_name }}</strong> |
+                <a href="{{ path('mt_breakout_organization', {id: organization.id}) }}">← Retour</a>
+            </p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    Configuration du Cron Job
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="form-group">
+                            <label for="job_name">Nom du Job <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="job_name" name="job_name"
+                                   value="{{ cron_job.job_name|default('') }}" required>
+                            <small class="form-text text-muted">Ex: Breakout quotidien RGPH</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="job_type">Type de Job</label>
+                            <select class="form-control" id="job_type" name="job_type">
+                                <option value="breakout">Breakout (BLOB → Tables)</option>
+                                <option value="sync">Synchronisation</option>
+                                <option value="export">Export</option>
+                                <option value="custom">Commande personnalisée</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="cron_expression">Expression Cron <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="cron_expression" name="cron_expression"
+                                   value="{{ cron_job.cron_expression|default('0 2 * * *') }}" required>
+                            <small class="form-text text-muted">
+                                Format: minute heure jour mois jour_semaine
+                                <br>Exemples:
+                                <ul class="mb-0 mt-1">
+                                    <li><code>0 2 * * *</code> - Tous les jours à 2h du matin</li>
+                                    <li><code>*/30 * * * *</code> - Toutes les 30 minutes</li>
+                                    <li><code>0 */6 * * *</code> - Toutes les 6 heures</li>
+                                    <li><code>0 0 * * 0</code> - Tous les dimanches à minuit</li>
+                                </ul>
+                            </small>
+                        </div>
+
+                        <div id="breakout-config">
+                            <h5 class="mt-4 mb-3">Configuration Breakout</h5>
+
+                            <div class="form-group">
+                                <label for="db_connection_id">Connexion de Destination</label>
+                                <select class="form-control" id="db_connection_id" name="db_connection_id">
+                                    <option value="">-- Connexion par défaut --</option>
+                                    {% for conn in connections %}
+                                        <option value="{{ conn.id }}">
+                                            {{ conn.connection_name }} ({{ conn.db_driver }} - {{ conn.db_name }})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Dictionnaires à Traiter</label>
+                                <div class="border p-3" style="max-height: 300px; overflow-y: auto;">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="select_all_dicts">
+                                        <label class="form-check-label" for="select_all_dicts">
+                                            <strong>Tous les dictionnaires</strong>
+                                        </label>
+                                    </div>
+                                    <hr>
+                                    {% for dict in dictionaries %}
+                                    <div class="form-check">
+                                        <input class="form-check-input dict-checkbox" type="checkbox"
+                                               name="dictionaries[]" value="{{ dict.dictionary_name }}"
+                                               id="dict_{{ dict.id }}">
+                                        <label class="form-check-label" for="dict_{{ dict.id }}">
+                                            {{ dict.dictionary_name }}
+                                            {% if dict.dictionary_label %}
+                                                <small class="text-muted">- {{ dict.dictionary_label }}</small>
+                                            {% endif %}
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                <small class="form-text text-muted">
+                                    Laisser vide pour traiter tous les dictionnaires
+                                </small>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="threads">Nombre de Threads</label>
+                                        <input type="number" class="form-control" id="threads" name="threads"
+                                               value="3" min="1" max="10">
+                                        <small class="form-text text-muted">Threads parallèles (défaut: 3)</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="max_cases">Cases par Chunk</label>
+                                        <input type="number" class="form-control" id="max_cases" name="max_cases"
+                                               value="1000" min="100" max="10000" step="100">
+                                        <small class="form-text text-muted">Cases par traitement (défaut: 1000)</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="custom-command-config" style="display: none;">
+                            <h5 class="mt-4 mb-3">Commande Personnalisée</h5>
+                            <div class="form-group">
+                                <label for="custom_command">Commande</label>
+                                <textarea class="form-control" id="custom_command" name="custom_command" rows="3"></textarea>
+                                <small class="form-text text-muted">
+                                    Commande console complète (sans "php bin/console")
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="form-check mt-4">
+                            <input class="form-check-input" type="checkbox" name="is_active" id="is_active" checked>
+                            <label class="form-check-label" for="is_active">
+                                Activer ce cron job immédiatement
+                            </label>
+                        </div>
+
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Enregistrer
+                            </button>
+                            <a href="{{ path('mt_breakout_organization', {id: organization.id}) }}"
+                               class="btn btn-secondary">
+                                Annuler
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <i class="fas fa-info-circle"></i> Aide
+                </div>
+                <div class="card-body">
+                    <h6>Qu'est-ce qu'un Cron Job?</h6>
+                    <p class="small">
+                        Les cron jobs permettent d'automatiser l'exécution de tâches répétitives
+                        comme le breakout des données BLOB vers des tables SQL.
+                    </p>
+
+                    <h6 class="mt-3">Expression Cron</h6>
+                    <p class="small">
+                        Format: <code>* * * * *</code>
+                        <br>Signification: minute heure jour mois jour_semaine
+                    </p>
+
+                    <h6 class="mt-3">Dictionnaires</h6>
+                    <p class="small">
+                        Si aucun dictionnaire n'est sélectionné, TOUS les dictionnaires
+                        de l'organisation seront traités.
+                    </p>
+
+                    <h6 class="mt-3">Performances</h6>
+                    <p class="small">
+                        - Plus de threads = plus rapide mais plus de charge serveur
+                        <br>- Plus de cases par chunk = moins d'overhead mais plus de mémoire
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const jobType = document.getElementById('job_type');
+    const breakoutConfig = document.getElementById('breakout-config');
+    const customConfig = document.getElementById('custom-command-config');
+    const selectAll = document.getElementById('select_all_dicts');
+    const dictCheckboxes = document.querySelectorAll('.dict-checkbox');
+
+    // Toggle config based on job type
+    jobType.addEventListener('change', function() {
+        if (this.value === 'custom') {
+            breakoutConfig.style.display = 'none';
+            customConfig.style.display = 'block';
+        } else {
+            breakoutConfig.style.display = 'block';
+            customConfig.style.display = 'none';
+        }
+    });
+
+    // Select all dictionaries
+    selectAll.addEventListener('change', function() {
+        dictCheckboxes.forEach(cb => {
+            cb.checked = this.checked;
+        });
+    });
+
+    // Update select all checkbox
+    dictCheckboxes.forEach(cb => {
+        cb.addEventListener('change', function() {
+            const allChecked = Array.from(dictCheckboxes).every(c => c.checked);
+            selectAll.checked = allChecked;
+        });
+    });
+});
+</script>
+{% endblock %}

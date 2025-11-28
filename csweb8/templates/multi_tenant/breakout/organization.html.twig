@@ -1,0 +1,212 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Breakout - {{ organization.organization_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1 class="mb-2">
+                <i class="fas fa-database"></i> {{ organization.organization_name }}
+            </h1>
+            <p class="text-muted">
+                <strong>Code:</strong> {{ organization.organization_code }} |
+                <a href="{{ path('mt_breakout_dashboard') }}">← Retour au dashboard</a>
+            </p>
+        </div>
+    </div>
+
+    {# Configuration des connexions #}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <i class="fas fa-plug"></i> Connexions de Base de Données
+                </div>
+                <div class="card-body">
+                    {% if connections|length > 0 %}
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Nom</th>
+                                    <th>Type</th>
+                                    <th>Host</th>
+                                    <th>Database</th>
+                                    <th>Défaut</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for conn in connections %}
+                                <tr>
+                                    <td><strong>{{ conn.connection_name }}</strong></td>
+                                    <td><span class="badge badge-secondary">{{ conn.db_driver }}</span></td>
+                                    <td>{{ conn.db_host }}:{{ conn.db_port }}</td>
+                                    <td>{{ conn.db_name }}</td>
+                                    <td>
+                                        {% if conn.is_default %}
+                                            <span class="badge badge-success">Oui</span>
+                                        {% else %}
+                                            <span class="badge badge-light">Non</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if conn.is_active %}
+                                            <span class="badge badge-success">Active</span>
+                                        {% else %}
+                                            <span class="badge badge-danger">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            Aucune connexion configurée.
+                            <a href="{{ path('superadmin_connections_create', {orgId: organization.id}) }}" class="alert-link">
+                                Créer une connexion
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Cron Jobs #}
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-clock"></i> Cron Jobs - Automatisation Breakout</span>
+                    <a href="{{ path('mt_cron_create', {orgId: organization.id}) }}" class="btn btn-light btn-sm">
+                        <i class="fas fa-plus"></i> Nouveau Cron Job
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if cron_jobs|length > 0 %}
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Nom</th>
+                                    <th>Type</th>
+                                    <th>Expression Cron</th>
+                                    <th>Dictionnaires</th>
+                                    <th>Connexion</th>
+                                    <th>Dernier Run</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for job in cron_jobs %}
+                                <tr class="{% if not job.is_active %}text-muted{% endif %}">
+                                    <td><strong>{{ job.job_name }}</strong></td>
+                                    <td><span class="badge badge-info">{{ job.job_type }}</span></td>
+                                    <td><code>{{ job.cron_expression }}</code></td>
+                                    <td>
+                                        {% if job.dictionaries %}
+                                            {% set dicts = job.dictionaries|json_decode %}
+                                            <span class="badge badge-secondary">{{ dicts|length }} dict(s)</span>
+                                        {% else %}
+                                            <span class="text-muted">Tous</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ job.connection_name|default('N/A') }}</td>
+                                    <td>
+                                        {% if job.last_run_at %}
+                                            {{ job.last_run_at|date('Y-m-d H:i') }}
+                                        {% else %}
+                                            <span class="text-muted">Jamais</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if job.last_run_status == 'success' %}
+                                            <span class="badge badge-success">Succès</span>
+                                        {% elseif job.last_run_status == 'failed' %}
+                                            <span class="badge badge-danger">Erreur</span>
+                                        {% elseif job.last_run_status == 'running' %}
+                                            <span class="badge badge-warning">En cours...</span>
+                                        {% else %}
+                                            <span class="badge badge-light">Aucun</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button class="btn btn-success btn-run-job" data-job-id="{{ job.id }}">
+                                                <i class="fas fa-play"></i>
+                                            </button>
+                                            <button class="btn {% if job.is_active %}btn-warning{% else %}btn-secondary{% endif %} btn-toggle-job"
+                                                    data-job-id="{{ job.id }}">
+                                                <i class="fas {% if job.is_active %}fa-pause{% else %}fa-play{% endif %}"></i>
+                                            </button>
+                                            <button class="btn btn-danger btn-delete-job" data-job-id="{{ job.id }}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div class="alert alert-info">
+                            Aucun cron job configuré pour cette organisation.
+                            <a href="{{ path('mt_cron_create', {orgId: organization.id}) }}" class="alert-link">
+                                Créer le premier cron job
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Run job
+    document.querySelectorAll('.btn-run-job').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const jobId = this.dataset.jobId;
+            if (confirm('Lancer ce job maintenant?')) {
+                fetch(`/admin/multi-tenant/breakout/cron/run/${jobId}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                })
+                .then(res => res.json())
+                .then(data => {
+                    alert(data.message || 'Job lancé');
+                    location.reload();
+                });
+            }
+        });
+    });
+
+    // Toggle job
+    document.querySelectorAll('.btn-toggle-job').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const jobId = this.dataset.jobId;
+            fetch(`/admin/multi-tenant/breakout/cron/toggle/${jobId}`, {
+                method: 'POST'
+            })
+            .then(() => location.reload());
+        });
+    });
+
+    // Delete job
+    document.querySelectorAll('.btn-delete-job').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const jobId = this.dataset.jobId;
+            if (confirm('Supprimer ce cron job?')) {
+                fetch(`/admin/multi-tenant/breakout/cron/delete/${jobId}`, {
+                    method: 'POST'
+                })
+                .then(() => location.reload());
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
